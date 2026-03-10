@@ -55,7 +55,7 @@ function AppContent() {
   if (configured && !user) {
     return (
       <div className="app-shell">
-        <Header language={language} />
+        <Header language={language} userEmail={null} />
         <SignInScreen
           language={language}
           onSignIn={signInWithGoogle}
@@ -68,7 +68,7 @@ function AppContent() {
 
   return (
     <div className="app-shell">
-      <Header language={language} />
+      <Header language={language} userEmail={user?.email ?? null} />
 
       {screen === "today" && (
         <TodayScreen language={language} idToken={idToken} uid={uid} />

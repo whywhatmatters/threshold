@@ -49,6 +49,7 @@ export function TodayScreen({ language, idToken, uid }: Props) {
   const [allEntries, setAllEntries] = useState<JournalEntry[]>([]);
 
   const copy = t(language).today;
+  const introCopy = t(language).intro;
   const date = todayKey();
   const useAsync = uid !== null;
 
@@ -181,21 +182,21 @@ export function TodayScreen({ language, idToken, uid }: Props) {
       {phase === "intro" ? (
         <>
           <div className="rule" />
-          <p className="eyebrow">The Crossing</p>
+          {introCopy.eyebrow && <p className="eyebrow">{introCopy.eyebrow}</p>}
           <h1 className="fell" style={{ fontSize: 26, marginBottom: 20 }}>
-            The Crossing
+            {introCopy.title}
           </h1>
           <p className="serif" style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>
-            You are about to begin a 30-day reflection journey.
+            {introCopy.line1}
           </p>
           <p className="serif" style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 12 }}>
-            Each day offers one question. A few lines is enough.
+            {introCopy.line2}
           </p>
           <p className="serif" style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 28 }}>
-            There is no need to finish perfectly. Just return when you can.
+            {introCopy.line3}
           </p>
           <button type="button" className="btn-primary" onClick={handleBeginDayOne}>
-            Begin Day 1
+            {introCopy.cta}
           </button>
         </>
       ) : (

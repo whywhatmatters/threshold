@@ -24,6 +24,14 @@ export const UI = {
       tryAgain: "Try again",
       errorMessage: "Something shifted in the connection. Your words are safe — please try again.",
     },
+    intro: {
+      eyebrow: "",
+      title: "The Crossing",
+      line1: "You are about to begin a 30-day reflection journey.",
+      line2: "Each day offers one question. A few lines is enough.",
+      line3: "There is no need to finish perfectly. Just return when you can.",
+      cta: "Begin Day 1"
+    },
     journal: {
       eyebrow: "Your Reflections",
       heading: "The archive",
@@ -85,6 +93,14 @@ export const UI = {
       viewJournal: "기록 보기",
       tryAgain: "다시 시도",
       errorMessage: "연결에 문제가 생겼습니다. 쓰신 내용은 안전합니다 — 다시 시도해 주세요.",
+    },
+    intro: {
+      eyebrow: "",
+      title: "The Crossing",
+      line1: "당신은 지금 30일 간의 성찰 여정을 시작하려 합니다.",
+      line2: "하루에 하나의 질문만 있습니다. 몇 줄이면 충분합니다.",
+      line3: "완벽하게 끝낼 필요는 없습니다. 다시 돌아오고 싶을 때 돌아오면 됩니다.",
+      cta: "Day 1 시작하기"
     },
     journal: {
       eyebrow: "나의 성찰",
