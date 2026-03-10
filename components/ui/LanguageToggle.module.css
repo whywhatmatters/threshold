@@ -1,0 +1,19 @@
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.option {
+  background: none;
+  border: none;
+  font-family: 'Karla', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--warm-mid);
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 0.2s;
+  text-transform: uppercase;
+}
+.option.active { color: var(--ink); border-bottom: 1px solid var(--ink); }
+.divider { color: var(--faint); font-size: 12px; }

@@ -1,0 +1,29 @@
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--paper);
+  border-top: 1px solid var(--faint);
+  display: flex;
+  padding: 10px 0 14px;
+  z-index: 100;
+}
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--warm-mid);
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 4px 0;
+}
+.item.active { color: var(--ink); }
+.icon  { font-size: 17px; line-height: 1; }
+.label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Karla', sans-serif; }

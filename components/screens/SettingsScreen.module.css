@@ -1,0 +1,36 @@
+.screen {
+  flex: 1;
+  padding: 0 28px;
+  animation: fadeUp 0.5s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.heading {
+  font-size: 26px;
+  font-weight: 400;
+  font-style: italic;
+  margin-bottom: 32px;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 0;
+  border-top: 1px solid var(--faint);
+  border-bottom: 1px solid var(--faint);
+}
+.label {
+  font-size: 13px;
+  font-family: 'Karla', sans-serif;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 220px;
+}

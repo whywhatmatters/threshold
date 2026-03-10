@@ -1,0 +1,9 @@
+.card { margin-bottom: 8px; }
+.promptText {
+  font-size: 22px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.theme { margin-bottom: 28px; }

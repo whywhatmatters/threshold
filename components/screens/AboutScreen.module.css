@@ -1,0 +1,50 @@
+.screen {
+  flex: 1;
+  padding: 0 28px;
+  animation: fadeUp 0.5s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.heading {
+  font-size: 26px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink);
+  margin-bottom: 28px;
+}
+.intro {
+  border-top: 1px solid var(--faint);
+  border-bottom: 1px solid var(--faint);
+  padding: 28px 0;
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.intro p { font-size: 16px; line-height: 1.8; color: var(--muted); }
+
+.frameworkLabel { margin-bottom: 16px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.fieldBox {
+  background: var(--warm-light);
+  border: 1px solid var(--faint);
+  padding: 14px 16px;
+}
+.fieldBox.full { grid-column: 1 / -1; }
+.fieldLabel { font-size: 9px; margin-bottom: 6px; }
+.fieldValue { font-size: 14px; font-style: italic; line-height: 1.45; color: var(--ink); }
+
+.privacy {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.75;
+  margin-bottom: 40px;
+}

@@ -1,0 +1,15 @@
+.header {
+  padding: 32px 28px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-shrink: 0;
+}
+.wordmark {
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.date {
+  font-size: 11px;
+}
