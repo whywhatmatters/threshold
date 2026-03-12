@@ -1,10 +1,13 @@
 /**
  * Storage abstraction layer.
- * All persistence currently lives in the browser (localStorage).
- * Async helpers mirror the sync API for convenience.
+ * - For signed-out users: everything lives in localStorage.
+ * - For signed-in users: journal entries are stored in Supabase, with
+ *   localStorage as a lightweight cache / fallback.
  */
 
-import type { JournalEntry, Language, DailyPrompt } from "@/types";
+import type { JournalEntry, Language, DailyPrompt, Reflection } from "@/types";
+import { getSupabaseClient } from "@/lib/supabase";
+import { getProgramDayIndex } from "@/lib/journey";
 
 const JOURNAL_KEY = "threshold_journal";
 // Bump prompt cache prefix so older prompts (including English fallbacks under ko) are not reused.
@@ -74,7 +77,62 @@ export function saveEntry(entry: JournalEntry): void {
   localStorage.setItem(JOURNAL_KEY, JSON.stringify(entries));
 }
 
-// ─── Async mirrors ────────────────────────────────────────────────────────────
+// ─── Supabase helpers (journal) ───────────────────────────────────────────────
+
+function reflectionToColumns(reflection: Reflection) {
+  return {
+    summary_title: reflection.border_title,
+    summary_body: reflection.reflection_summary,
+    leaving_text: reflection.what_im_leaving,
+    entering_text: reflection.what_im_entering,
+    emerging_text: reflection.what_wants_to_emerge,
+    next_step_text: reflection.next_courageous_step,
+    threshold_statement: reflection.threshold_statement,
+    mood_tags: reflection.mood_tags,
+    reflection_json: reflection,
+  };
+}
+
+function rowToJournalEntry(row: any): JournalEntry {
+  let reflection: Reflection;
+  if (row.reflection_json) {
+    reflection = row.reflection_json as Reflection;
+  } else {
+    reflection = {
+      border_title: row.summary_title ?? "",
+      today_prompt: row.prompt_text ?? "",
+      detected_threshold: row.summary_body ?? "",
+      reflection_summary: row.summary_body ?? "",
+      what_im_leaving: row.leaving_text ?? "",
+      what_im_entering: row.entering_text ?? "",
+      what_wants_to_emerge: row.emerging_text ?? "",
+      symbol_from_today: "", // symbol not stored separately in fallback
+      next_courageous_step: row.next_step_text ?? "",
+      threshold_statement: row.threshold_statement ?? "",
+      mood_tags: Array.isArray(row.mood_tags) ? row.mood_tags : [],
+    };
+  }
+
+  const language: Language = row.language === "ko" ? "ko" : "en";
+  const date: string = row.date;
+
+  return {
+    id: `${date}-${language}`,
+    date,
+    language,
+    prompt: {
+      theme: row.prompt_theme,
+      prompt: row.prompt_text,
+      language,
+      date,
+    },
+    userResponse: row.response_text,
+    reflection,
+    createdAt: row.created_at ?? new Date().toISOString(),
+  };
+}
+
+// ─── Async API (Supabase for authed users, localStorage fallback) ─────────────
 
 export async function getStoredLanguageAsync(_uid: string | null): Promise<Language> {
   return getStoredLanguage();
@@ -103,28 +161,115 @@ export async function setCachedPromptAsync(
 }
 
 export async function getAllEntriesAsync(_uid: string | null): Promise<JournalEntry[]> {
-  return getAllEntries();
+  if (!_uid) return getAllEntries();
+  if (typeof window === "undefined") return [];
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return getAllEntries();
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("*")
+    .order("date", { ascending: false });
+
+  if (error || !data) {
+    console.error("[storage] getAllEntriesAsync error:", error);
+    return getAllEntries();
+  }
+
+  return (data as any[]).map(rowToJournalEntry);
 }
 
 export async function getEntriesForLanguageAsync(
   language: Language,
-  _uid: string | null
+  uid: string | null
 ): Promise<JournalEntry[]> {
-  return getEntriesForLanguage(language);
+  if (!uid) return getEntriesForLanguage(language);
+  if (typeof window === "undefined") return [];
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return getEntriesForLanguage(language);
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("*")
+    .eq("language", language)
+    .order("date", { ascending: false });
+
+  if (error || !data) {
+    console.error("[storage] getEntriesForLanguageAsync error:", error);
+    return getEntriesForLanguage(language);
+  }
+
+  return (data as any[]).map(rowToJournalEntry);
 }
 
 export async function getEntryByDateAsync(
   date: string,
   language: Language,
-  _uid: string | null
+  uid: string | null
 ): Promise<JournalEntry | null> {
-  return getEntryByDate(date, language);
+  if (!uid) return getEntryByDate(date, language);
+  if (typeof window === "undefined") return null;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return getEntryByDate(date, language);
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("*")
+    .eq("date", date)
+    .eq("language", language)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error && error.code !== "PGRST116") {
+      console.error("[storage] getEntryByDateAsync error:", error);
+    }
+    return getEntryByDate(date, language);
+  }
+
+  return rowToJournalEntry(data);
 }
 
 export async function saveEntryAsync(
   entry: JournalEntry,
-  _uid: string | null
+  uid: string | null
 ): Promise<void> {
+  // Always keep a local copy for offline access.
   saveEntry(entry);
+
+  if (!uid || typeof window === "undefined") return;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const programDay = getProgramDayIndex(entry.date) + 1;
+  const base = {
+    user_id: uid,
+    date: entry.date,
+    language: entry.language,
+    program_day: programDay,
+    prompt_theme: entry.prompt.theme,
+    prompt_text: entry.prompt.prompt,
+    response_text: entry.userResponse,
+  };
+
+  const reflectionCols = reflectionToColumns(entry.reflection);
+
+  const { error } = await supabase
+    .from("journal_entries")
+    .upsert(
+      {
+        ...base,
+        ...reflectionCols,
+      },
+      { onConflict: "user_id,date,language" },
+    );
+
+  if (error) {
+    console.error("[storage] saveEntryAsync upsert error:", error);
+    throw new Error(`Failed to save entry to Supabase: ${error.message}`);
+  }
 }
 

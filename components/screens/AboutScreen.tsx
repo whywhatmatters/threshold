@@ -1,5 +1,6 @@
 import type { Language } from "@/types";
 import { t } from "@/lib/i18n";
+import { useAuth } from "@/components/providers/AuthProvider";
 import styles from "./AboutScreen.module.css";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
 export function AboutScreen({ language }: Props) {
   const copy = t(language).about;
   const fields = copy.fields;
+  const { user, configured } = useAuth();
+  const isSignedIn = configured && Boolean(user);
 
   return (
     <div className={styles.screen}>
@@ -34,7 +37,13 @@ export function AboutScreen({ language }: Props) {
 
       <div className="ornament">· · ·</div>
 
-      <p className={`${styles.privacy} serif`}>{copy.privacyNote}</p>
+      <p className={`${styles.privacy} serif`}>
+        {isSignedIn
+          ? (language === "ko"
+              ? "성찰 기록은 계정에 안전하게 저장됩니다. 성찰을 요청할 때 작성한 텍스트가 서버로 전송됩니다."
+              : "Reflections are saved securely to your account. The text you write when requesting a reflection is sent to our server.")
+          : copy.privacyNote}
+      </p>
     </div>
   );
 }

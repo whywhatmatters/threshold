@@ -9,10 +9,12 @@ import {
   setCachedPrompt,
   getEntryByDate,
   saveEntry,
+  getAllEntries,
   getCachedPromptAsync,
   setCachedPromptAsync,
   getEntryByDateAsync,
   saveEntryAsync,
+  getAllEntriesAsync,
 } from "@/lib/storage";
 import { getProgramDayIndex } from "@/lib/journey";
 import { CrossingPortraitModal } from "@/components/ui/CrossingPortraitModal";
@@ -39,6 +41,22 @@ type Phase =
 
 const INTRO_SEEN_KEY = "threshold_intro_seen";
 
+function makeFallbackReflection(promptText: string, language: Language): Reflection {
+  return {
+    border_title: "",
+    today_prompt: promptText,
+    detected_threshold: "",
+    reflection_summary: "",
+    what_im_leaving: "",
+    what_im_entering: "",
+    what_wants_to_emerge: "",
+    symbol_from_today: "",
+    next_courageous_step: "",
+    threshold_statement: "",
+    mood_tags: [],
+  };
+}
+
 export function TodayScreen({ language, idToken, uid }: Props) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [prompt, setPrompt] = useState<DailyPrompt | null>(null);
@@ -52,6 +70,16 @@ export function TodayScreen({ language, idToken, uid }: Props) {
   const introCopy = t(language).intro;
   const date = todayKey();
   const useAsync = uid !== null;
+
+  // Load existing entries on mount so CrossingPortraitModal has the full history.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (useAsync) {
+      getAllEntriesAsync(uid).then(setAllEntries);
+    } else {
+      setAllEntries(getAllEntries());
+    }
+  }, [uid, useAsync]);
 
   const loadPrompt = useCallback(async () => {
     setPhase("loading-prompt");
@@ -125,27 +153,38 @@ export function TodayScreen({ language, idToken, uid }: Props) {
         body: JSON.stringify({ language, prompt: prompt.prompt, response: userResponse }),
       });
       const data = await res.json();
-      if (data.reflection) {
-        const entry: JournalEntry = {
-          id: `${date}-${language}`,
-          date,
-          language,
-          prompt,
-          userResponse,
-          reflection: data.reflection,
-          createdAt: new Date().toISOString(),
-        };
-        if (useAsync) await saveEntryAsync(entry, uid);
-        else saveEntry(entry);
-        setAllEntries((prev) => {
-          const existing = prev.filter((e) => e.id !== entry.id);
-          return [entry, ...existing];
+      const reflectionResult = data.reflection ?? makeFallbackReflection(prompt.prompt, language);
+      const entry: JournalEntry = {
+        id: `${date}-${language}`,
+        date,
+        language,
+        prompt,
+        userResponse,
+        reflection: reflectionResult,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save locally first (always succeeds), then sync to Supabase separately
+      // so a Supabase failure never blocks the user from seeing their reflection.
+      if (useAsync) {
+        saveEntryAsync(entry, uid).catch((err) => {
+          console.error("[TodayScreen] Supabase save failed:", err);
         });
-        setReflection(data.reflection);
-        setPhase("reflection");
       } else {
+        saveEntry(entry);
+      }
+
+      setAllEntries((prev) => {
+        const existing = prev.filter((e) => e.id !== entry.id);
+        return [entry, ...existing];
+      });
+      setReflection(reflectionResult);
+
+      if (!data.reflection) {
         throw new Error(data.error ?? "no reflection returned");
       }
+
+      setPhase("reflection");
     } catch (err) {
       console.error("[TodayScreen] reflect fetch failed:", err);
       setErrorMsg(copy.errorMessage);
@@ -259,8 +298,14 @@ export function TodayScreen({ language, idToken, uid }: Props) {
       <CrossingPortraitModal
         language={language}
         entries={allEntries}
+        uid={uid}
         isOpen={showPortraitModal}
         onClose={() => setShowPortraitModal(false)}
+        onReset={() => {
+          setAllEntries([]);
+          setPhase("loading-prompt");
+          loadPrompt();
+        }}
       />
     </div>
   );

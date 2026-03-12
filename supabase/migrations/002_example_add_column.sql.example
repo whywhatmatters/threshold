@@ -1,0 +1,16 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Migration 002 — Example: adding a new column safely
+--
+-- Rules:
+--   ✅ ADD COLUMN IF NOT EXISTS        — safe, never breaks existing data
+--   ✅ CREATE INDEX IF NOT EXISTS      — safe
+--   ✅ CREATE POLICY (with DO $$ check) — safe
+--   ❌ DROP COLUMN                     — destroys data permanently
+--   ❌ DROP TABLE                      — destroys everything permanently
+--   ❌ ALTER COLUMN TYPE               — can corrupt data, do in steps
+--   ❌ RENAME COLUMN                   — breaks existing queries
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Example: add a "skipped" flag
+ALTER TABLE journal_entries
+  ADD COLUMN IF NOT EXISTS skipped BOOLEAN DEFAULT FALSE;

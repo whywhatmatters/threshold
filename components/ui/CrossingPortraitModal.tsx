@@ -8,13 +8,15 @@ import styles from "./JournalDetailModal.module.css";
 interface Props {
   language: Language;
   entries: JournalEntry[];
+  uid: string | null;
   isOpen: boolean;
   onClose: () => void;
+  onReset: () => void;
 }
 
 const PORTRAIT_KEY = "threshold_crossing_portrait_latest";
 
-export function CrossingPortraitModal({ language, entries, isOpen, onClose }: Props) {
+export function CrossingPortraitModal({ language, entries, uid, isOpen, onClose, onReset }: Props) {
   const [portrait, setPortrait] = useState<CrossingPortrait | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,13 +72,20 @@ export function CrossingPortraitModal({ language, entries, isOpen, onClose }: Pr
   }
 
   function handleStartNewCrossing() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("threshold_journal");
-      window.localStorage.removeItem(PORTRAIT_KEY);
-      window.localStorage.removeItem("threshold_prompt_v3_en");
-      window.localStorage.removeItem("threshold_prompt_v3_ko");
-      window.location.reload();
-    }
+    if (typeof window === "undefined") return;
+    // Clear local cache regardless of auth state.
+    window.localStorage.removeItem("threshold_journal");
+    window.localStorage.removeItem(PORTRAIT_KEY);
+    window.localStorage.removeItem("threshold_intro_seen");
+    // Clear all prompt cache keys (v3 prefix).
+    Object.keys(window.localStorage)
+      .filter((k) => k.startsWith("threshold_prompt_v3"))
+      .forEach((k) => window.localStorage.removeItem(k));
+
+    // For Supabase users the historical data stays in the cloud —
+    // the local cache is cleared so today's flow restarts fresh.
+    onClose();
+    onReset();
   }
 
   const hasPortrait = Boolean(portrait);
