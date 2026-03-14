@@ -32,7 +32,7 @@ export function SignInScreen({ language, onSignIn, loading, onLanguageChange }: 
       </h1>
       <p className={`${styles.intro} serif`}>
         {language === "ko"
-          ? "로그인하면 일상의 반응과 프롬프트가 기기에 안전하게 저장됩니다."
+          ? "로그인하면 성찰 기록과 프롬프트가 기기에 안전하게 저장됩니다."
           : "Sign in to keep your reflections and prompts saved securely."}
       </p>
       <div className={styles.actions}>
