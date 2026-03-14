@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Language, PromptRequest, PromptResponse } from "@/types";
-import { getBorderCrossingPromptForDate } from "@/lib/journey";
+import { getBorderCrossingPromptForDay } from "@/lib/journey";
 
 export async function POST(req: NextRequest): Promise<NextResponse<PromptResponse>> {
   let body: PromptRequest;
@@ -12,9 +12,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<PromptRespons
 
   const language: Language = body.language === "ko" ? "ko" : "en";
   const date = body.date ?? new Date().toISOString().split("T")[0];
-  const startDate = body.startDate ?? date;
+  const dayIndex = body.dayIndex ?? 0;
 
-  const { theme, prompt } = getBorderCrossingPromptForDate(language, date, startDate);
+  const { theme, prompt } = getBorderCrossingPromptForDay(language, dayIndex);
 
   return NextResponse.json({
     prompt: { theme, prompt, language, date },

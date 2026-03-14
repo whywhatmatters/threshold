@@ -48,7 +48,7 @@ export interface JournalEntry {
 export interface PromptRequest {
   language: Language;
   date?: string;
-  startDate?: string;
+  dayIndex?: number;
 }
 
 export interface PromptResponse {

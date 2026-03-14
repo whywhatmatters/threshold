@@ -7,7 +7,6 @@
 
 import type { JournalEntry, Language, DailyPrompt, Reflection } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase";
-import { getProgramDayIndex } from "@/lib/journey";
 
 const JOURNAL_KEY = "threshold_journal";
 // Bump prompt cache prefix so older prompts are not reused.
@@ -248,7 +247,7 @@ export async function getEntryByDateAsync(
 export async function saveEntryAsync(
   entry: JournalEntry,
   uid: string | null,
-  startDate: string
+  programDay: number
 ): Promise<void> {
   // Always keep a local copy for offline access.
   saveEntry(entry);
@@ -257,8 +256,6 @@ export async function saveEntryAsync(
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
-
-  const programDay = getProgramDayIndex(entry.date, startDate) + 1;
   const base = {
     user_id: uid,
     date: entry.date,

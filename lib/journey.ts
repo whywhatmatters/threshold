@@ -425,21 +425,13 @@ const FLATTENED_KO: BorderCrossingDay[] = BORDER_CROSSING_WEEKS_KO.flatMap((w) =
   (a, b) => a.day - b.day,
 );
 
-export function getProgramDayIndex(dateStr: string, anchorDate: string): number {
-  const anchor = new Date(`${anchorDate}T00:00:00Z`);
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  const diffMs = d.getTime() - anchor.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  // Clamp to [0, 29] — days before anchor count as day 0
-  const idx = Math.min(Math.max(diffDays, 0), 29);
-  return idx;
-}
-
-export function getBorderCrossingPromptForDate(language: Language, date: string, anchorDate: string): {
+// Day index is visit-based: 0 = first time user journals, 1 = second, etc.
+// Clamped to [0, 29] so day 30 is the permanent final prompt.
+export function getBorderCrossingPromptForDay(language: Language, dayIndex: number): {
   theme: string;
   prompt: string;
 } {
-  const idx = getProgramDayIndex(date, anchorDate);
+  const idx = Math.min(Math.max(dayIndex, 0), 29);
   if (language === "ko") {
     const dayKo = FLATTENED_KO[idx] ?? FLATTENED_KO[FLATTENED_KO.length - 1]!;
     return {
