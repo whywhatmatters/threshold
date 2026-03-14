@@ -10,9 +10,10 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { getProgramDayIndex } from "@/lib/journey";
 
 const JOURNAL_KEY = "threshold_journal";
-// Bump prompt cache prefix so older prompts (including English fallbacks under ko) are not reused.
-const PROMPT_KEY_PREFIX = "threshold_prompt_v3";
+// Bump prompt cache prefix so older prompts are not reused.
+const PROMPT_KEY_PREFIX = "threshold_prompt_v4";
 const LANGUAGE_KEY = "threshold_language";
+const START_DATE_KEY = "threshold_start_date";
 
 function promptCacheKey(date: string, language: Language): string {
   return `${PROMPT_KEY_PREFIX}_${date}_${language}`;
@@ -29,6 +30,18 @@ export function getStoredLanguage(): Language {
 export function setStoredLanguage(language: Language): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(LANGUAGE_KEY, language);
+}
+
+// ─── User Start Date ──────────────────────────────────────────────────────────
+
+export function getStartDate(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(START_DATE_KEY);
+}
+
+export function setStartDate(date: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(START_DATE_KEY, date);
 }
 
 // ─── Daily Prompt Cache ───────────────────────────────────────────────────────
@@ -234,7 +247,8 @@ export async function getEntryByDateAsync(
 
 export async function saveEntryAsync(
   entry: JournalEntry,
-  uid: string | null
+  uid: string | null,
+  startDate: string
 ): Promise<void> {
   // Always keep a local copy for offline access.
   saveEntry(entry);
@@ -244,7 +258,7 @@ export async function saveEntryAsync(
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const programDay = getProgramDayIndex(entry.date) + 1;
+  const programDay = getProgramDayIndex(entry.date, startDate) + 1;
   const base = {
     user_id: uid,
     date: entry.date,

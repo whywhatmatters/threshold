@@ -48,6 +48,7 @@ export interface JournalEntry {
 export interface PromptRequest {
   language: Language;
   date?: string;
+  startDate?: string;
 }
 
 export interface PromptResponse {

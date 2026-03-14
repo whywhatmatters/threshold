@@ -45,7 +45,7 @@ Supabase table: `journal_entries`, unique on `(user_id, date, language)`.
 
 ### 30-day program (`lib/journey.ts`)
 
-The core content is a fixed 30-day "Border Crossing" sequence in English and Korean (`BORDER_CROSSING_WEEKS_EN` / `BORDER_CROSSING_WEEKS_KO`). Day index is computed from `PROGRAM_ANCHOR_DATE = "2025-01-01"` using modular arithmetic (repeating 30-day cycle). The program day drives prompt selection in the API routes.
+The core content is a fixed 30-day "Border Crossing" sequence in English and Korean (`BORDER_CROSSING_WEEKS_EN` / `BORDER_CROSSING_WEEKS_KO`). Day index is computed from the user's personal `startDate` (stored as `threshold_start_date` in localStorage). The start date is derived on first load from the earliest journal entry, or set to today for brand-new users. It is clamped to `[0, 29]` — day 30 is the last prompt and stays there permanently. `getProgramDayIndex(dateStr, anchorDate)` and `getBorderCrossingPromptForDate(language, date, anchorDate)` both require the anchor to be passed explicitly.
 
 ### AI API routes
 

@@ -12,8 +12,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<PromptRespons
 
   const language: Language = body.language === "ko" ? "ko" : "en";
   const date = body.date ?? new Date().toISOString().split("T")[0];
+  const startDate = body.startDate ?? date;
 
-  const { theme, prompt } = getBorderCrossingPromptForDate(language, date);
+  const { theme, prompt } = getBorderCrossingPromptForDate(language, date, startDate);
 
   return NextResponse.json({
     prompt: { theme, prompt, language, date },

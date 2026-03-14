@@ -15,6 +15,8 @@ import {
   getEntryByDateAsync,
   saveEntryAsync,
   getAllEntriesAsync,
+  getStartDate,
+  setStartDate,
 } from "@/lib/storage";
 import { getProgramDayIndex } from "@/lib/journey";
 import { CrossingPortraitModal } from "@/components/ui/CrossingPortraitModal";
@@ -65,23 +67,50 @@ export function TodayScreen({ language, idToken, uid }: Props) {
   const [lastResponse, setLastResponse] = useState("");
   const [showPortraitModal, setShowPortraitModal] = useState(false);
   const [allEntries, setAllEntries] = useState<JournalEntry[]>([]);
+  // Start date for the user's personal 30-day program. null = not yet determined.
+  const [startDate, setStartDateState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return getStartDate();
+  });
 
   const copy = t(language).today;
   const introCopy = t(language).intro;
   const date = todayKey();
   const useAsync = uid !== null;
 
-  // Load existing entries on mount so CrossingPortraitModal has the full history.
+  // On mount (or uid change): if start date not yet in localStorage, derive it from
+  // the earliest journal entry. If no entries exist, use today as the start date.
+  // Also loads all entries for the CrossingPortraitModal.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (useAsync) {
-      getAllEntriesAsync(uid).then(setAllEntries);
-    } else {
-      setAllEntries(getAllEntries());
-    }
-  }, [uid, useAsync]);
 
-  const loadPrompt = useCallback(async () => {
+    async function initStartDate() {
+      let entries: JournalEntry[];
+      if (useAsync) {
+        entries = await getAllEntriesAsync(uid);
+      } else {
+        entries = getAllEntries();
+      }
+      setAllEntries(entries);
+
+      // Only set start date if not already stored.
+      if (getStartDate()) return;
+
+      let anchor = date; // default: today
+      if (entries.length > 0) {
+        // Use the earliest entry's date as the personal anchor.
+        const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+        anchor = sorted[0].date;
+      }
+      setStartDate(anchor);
+      setStartDateState(anchor);
+    }
+
+    initStartDate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
+  const loadPrompt = useCallback(async (anchor: string) => {
     setPhase("loading-prompt");
 
     const existing = useAsync
@@ -110,7 +139,7 @@ export function TodayScreen({ language, idToken, uid }: Props) {
       const res = await fetch("/api/prompt", {
         method: "POST",
         headers,
-        body: JSON.stringify({ language, date }),
+        body: JSON.stringify({ language, date, startDate: anchor }),
       });
       const data = await res.json();
       if (data.prompt) {
@@ -128,15 +157,17 @@ export function TodayScreen({ language, idToken, uid }: Props) {
     }
   }, [language, date, copy.errorMessage, useAsync, uid, idToken]);
 
+  // Fire loadPrompt once startDate is known (and intro has been seen).
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (startDate === null) return; // wait until start date is resolved
     const seen = window.localStorage.getItem(INTRO_SEEN_KEY);
     if (seen === "1") {
-      loadPrompt();
+      loadPrompt(startDate);
     } else {
       setPhase("intro");
     }
-  }, [loadPrompt]);
+  }, [startDate, loadPrompt]);
 
   async function handleSubmit(userResponse: string) {
     if (!prompt) return;
@@ -167,7 +198,7 @@ export function TodayScreen({ language, idToken, uid }: Props) {
       // Save locally first (always succeeds), then sync to Supabase separately
       // so a Supabase failure never blocks the user from seeing their reflection.
       if (useAsync) {
-        saveEntryAsync(entry, uid).catch((err) => {
+        saveEntryAsync(entry, uid, startDate ?? date).catch((err) => {
           console.error("[TodayScreen] Supabase save failed:", err);
         });
       } else {
@@ -201,8 +232,8 @@ export function TodayScreen({ language, idToken, uid }: Props) {
       if (lastResponse && prompt) {
         // Retry reflection
         handleSubmit(lastResponse);
-      } else {
-        loadPrompt();
+      } else if (startDate) {
+        loadPrompt(startDate);
       }
     }
   }
@@ -210,11 +241,15 @@ export function TodayScreen({ language, idToken, uid }: Props) {
   function handleBeginDayOne() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(INTRO_SEEN_KEY, "1");
+      // Set start date to today when the user explicitly begins the program.
+      const anchor = date;
+      setStartDate(anchor);
+      setStartDateState(anchor);
+      loadPrompt(anchor);
     }
-    loadPrompt();
   }
 
-  const isDay30 = getProgramDayIndex(date) === 29;
+  const isDay30 = startDate !== null && getProgramDayIndex(date, startDate) === 29;
 
   return (
     <div className={styles.screen}>
@@ -304,7 +339,7 @@ export function TodayScreen({ language, idToken, uid }: Props) {
         onReset={() => {
           setAllEntries([]);
           setPhase("loading-prompt");
-          loadPrompt();
+          if (startDate) loadPrompt(startDate);
         }}
       />
     </div>
